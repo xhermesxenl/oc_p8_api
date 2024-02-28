@@ -5,6 +5,7 @@ import os
 import numpy as np
 import json
 
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import NearestNeighbors
 from flask import Flask, request, jsonify, render_template
 from flask_restx import Api, Resource, Namespace, fields
@@ -18,25 +19,20 @@ shap.initjs()
 # http://127.0.0.1:5000/api/predict/58369
 
 app = Flask(__name__)
-api = Api(app, version='1.0', title='API Example avec Flask-RESTPlus',
-          description='Une simple API documentée avec Flask-RESTPlus')
+api = Api(app, version='1.0', title='API de Score de Crédit',
+          description='Une API permettant de calculer et de gérer les scores de crédit')
 
 # Définition du namespace
 ns = api.namespace('api', description='Opérations principales')
 api.add_namespace(ns, path='/api')
 
 model_filename = "model.pkl"
-data_train = pd.read_csv("train_api.csv")
-data_test = pd.read_csv("test_api.csv")
+data_app = pd.read_csv("data.csv")
 data_info = pd.read_csv("data_info.csv")
 data_global = pd.read_csv("feature_importances.csv")
 data_desc = pd.read_csv("HomeCredit_columns_description.csv", encoding="ISO-8859-1")
-data_json = json.loads(data_info.to_json())
-data_train_j = json.loads(data_train.to_json())
-data_test_j = json.loads(data_test.to_json())
-
-ids = list(data_test.index.to_series())
-
+data_info_j = json.loads(data_info.to_json())
+data_app_j = json.loads(data_app.to_json())
 
 model_path = os.path.join(os.getcwd(), model_filename)
 
@@ -52,58 +48,60 @@ treshold = 0.48
                         #######################
                         ###      KNN        ###
                         #######################
+def minmax(data):
+    col = data['TARGET']
+    cols_to_exclude = ['TARGET', 'SK_ID_CURR']
+    df = data.select_dtypes(include='number').drop(cols_to_exclude, axis=1)
 
-def voisins_proches(data_train, n_neighbors=5):
+    scaler = MinMaxScaler().fit(df)
+    df_minmax = pd.DataFrame(scaler.transform(df), columns=df.columns,
+                               index=df.index)
 
-    # Créez et entraînez le modèle des plus proches voisins
-    knn = NearestNeighbors(n_neighbors=n_neighbors, algorithm='auto')
-    neighbors = knn.fit(data_train)
+    df_minmax['TARGET'] = col
+    df_minmax['SK_ID_CURR'] = data['SK_ID_CURR']
+    return df_minmax
 
-    return neighbors
+df_minmax = minmax(data_app)
 
 
-
-def voisins_proches_id(df_test, data_train, client_id, n_neighbors=5):
+def voisins_proches_id(client_id, df_minmax, n_neighbors=10):
     """
-    Trouve les voisins les plus proches pour un client donné dans le jeu de données d'entraînement.
-
-    :param client_id: Identifiant unique du client dans le jeu de données de test.
-    :param n_neighbors: Nombre de voisins les plus proches à trouver.
-    :return: DataFrame contenant les informations des voisins similaires.
+    Trouve les voisins les plus proches pour un client donné
     """
-    test_point = df_test.loc[[client_id]].values
 
-    # Créez et entraînez le modèle des plus proches voisins
+    print("start")
+    # Vérifier si le client existe dans les données
+    # if client_id not in df_minmax['SK_ID_CURR']:
+    #     raise ValueError("Le client avec l'identifiant {} n'existe pas dans les données.".format(client_id))
+    if client_id in df_minmax["SK_ID_CURR"].tolist():
+        print("id_client ok in dataminmax")
+
+    feat = df_minmax.loc[df_minmax["SK_ID_CURR"] == client_id].drop(columns=["TARGET", "SK_ID_CURR"]).values.reshape(1, -1)
+    X_train = df_minmax.drop(columns=["TARGET", "SK_ID_CURR"]).values
+
     knn = NearestNeighbors(n_neighbors=n_neighbors, algorithm='auto')
-    neighbors = knn.fit(data_train)
+    knn.fit(X_train)
 
-    # Trouvez les voisins les plus proches
-    distances, indices = knn.kneighbors(test_point)
+    indices = knn.kneighbors(feat, return_distance=False)
 
-    # Récupérez les voisins similaires à partir de data_train
-    similar_clients = data_train.iloc[indices[0]]
-    return similar_clients
+    similar_clients = data_info.iloc[indices[0], :]
+    similar_clients_norm = df_minmax.iloc[indices[0], :]
+
+    return similar_clients, similar_clients_norm
+
 
 @ns.route('/')
 class Welcome(Resource):
     def get(self):
-        return "Bienvenue dans l'API de prediction de credit !"
-
-@ns.route('/ids')
-class ClientsIDs(Resource):
-    def get(self):
-    # Return en json format
-        return jsonify({'status': 'ok',
-                        'data': ids})
-
-
+        return "Bienvenue dans l'API de prédiction de crédit !"
 
 @ns.route('/predict/<int:id_client>')
 class PredictScoreClient(Resource):
     def get(self, id_client):
-        if id_client in data_test["SK_ID_CURR"].tolist():
-            data_client = data_test.loc[data_test["SK_ID_CURR"] == id_client]
-            data_client = data_client.drop(["Unnamed: 0", "SK_ID_CURR"], axis=1)
+        id_client = int(id_client)
+        if id_client in data_app["SK_ID_CURR"].tolist():
+            data_client = data_app.loc[data_app["SK_ID_CURR"] == id_client]
+            data_client = data_client.drop(["SK_ID_CURR", "TARGET"], axis=1)
             proba = model.predict_proba(data_client)
 
             proba_1 = round(proba[0][1] * 100)
@@ -118,66 +116,91 @@ class PredictScoreClient(Resource):
         else:
             return jsonify({"error": "Unknown ID"}), 404
 
+@ns.route('/predictpost')
+class PredictScoreClientPost(Resource):
+    def post(self):
+        request_data = request.get_json()
 
+        id_client = request_data.get('id_client')
+        id_client = int(id_client)
+        updated_data = request_data.get('data')
 
-@app.get("/api/data/<int:id_client>/")
-def donnees_client(id_client):
-    if id_client in data_info["SK_ID_CURR"].tolist():
-        data_client = data_info.loc[data_info["SK_ID_CURR"] == id_client]
-        return jsonify(data_client.to_dict(orient="records"))
-    else:
-        return jsonify({"error": "Unknown ID"}), 404
+        if id_client and id_client in data_app["SK_ID_CURR"].tolist():
 
-    # client_model = ns.model('Client', {
-    #     'SK_ID_CURR': fields.Integer(description='Identifiant du client')
-    # })
+            # Extraction et mise à jour des données client
+            data_client = data_app.loc[data_app["SK_ID_CURR"] == id_client]
+            data_client = data_client.drop(["SK_ID_CURR", "TARGET"], axis=1)
 
-#
-# @ns.route('/data/<int:id_client>/')
-# @ns.response(404, 'Identifiant non trouvé')
-# @ns.param('id_client', 'L\'identifiant du client')
-# class DonneesClient(Resource):
-#     @ns.marshal_with(client_model, envelope='data', code=200, skip_none=True)
-#     def get(self, id_client):
-#         """Retourne les données du client par ID"""
-#         if id_client in data_info["SK_ID_CURR"].tolist():
-#             data_client = data_info.loc[data_info["SK_ID_CURR"] == id_client]
-#             # Conversion du DataFrame en dictionnaire pour la réponse
-#             return data_client.to_dict(orient="records")[0]
-#         else:
-#             ns.abort(404, "Unknown ID")
+            # Mettre à jour data_client avec updated_data ici
+            for key, value in updated_data.items():
+                print(key, value)
+                if key in data_client.columns:
+                    data_client[key] = float(value)
+
+            # Prédiction
+            proba = model.predict_proba(data_client)
+            proba_1 = round(proba[0][1] * 100)
+            seuil_optimal = 0.48
+            value_seuil_optimal = seuil_optimal * 100
+            classe = "refusé" if proba_1 > value_seuil_optimal else "accepté"
+
+            return jsonify({"probability": proba_1, "classe": classe})
+        else:
+            return jsonify({"error": "Unknown ID"}), 404
+
+@ns.route('/data/<int:id_client>')
+class InfoClient(Resource):
+    def get(self, id_client):
+        if id_client in data_info["SK_ID_CURR"].tolist():
+            data_client = data_info.loc[data_info["SK_ID_CURR"] == id_client]
+            return jsonify(data_client.to_dict(orient="records"))
+        else:
+            return jsonify({"error": "Unknown ID"}), 404
 
 """Retourne les informations descriptives pour tous les clients."""
-@app.get('/api/data/all')
-def tous_data_clients():
-    try:
-        return jsonify({
-            'data_train': data_train_j,
-            'data_test': data_test_j
-        }), 200
-    except Exception as e:
-        return jsonify({'erreur': str(e)}), 500
+@ns.route('/data/all')
+class AllClient(Resource):
+    def get(self):
+        try:
+            data_j = json.loads(df_minmax.to_json())
 
-"""Retourne les informations descriptives pour tous les clients."""
+            return jsonify({
+                'data': data_j,
+                'data_test': data_test_j,
+                'data_info': data_info_j,
+            }), 200
+        except Exception as e:
+            return jsonify({'erreur': str(e)}), 500
 
-@app.get('/api/data/knn/<int:id_client>')
-def knn_data_clients():
-    try:
+### Comparaison Knn
+@ns.route('/data/knn/<int:id_client>')
+class KnnDataClient(Resource):
+    def get(self, id_client):
 
-        return jsonify({
-            'data_train': data_train_j,
-            'data_test': data_test_j
-        }), 200
-    except Exception as e:
-        return jsonify({'erreur': str(e)}), 500
+        try:
+            id_client = int(id_client)
+            sim_clients, sim_clients_norm = voisins_proches_id(id_client, df_minmax)
 
+            # df_sim_client_j = json.loads(sim_clients.to_json())
+            # df_sim_client_norm_j = json.loads(sim_clients_norm.to_json())
+
+            df_sim_client_j = json.loads(sim_clients.to_json(orient='records'))
+            df_sim_client_norm_j = json.loads(sim_clients_norm.to_json(orient='records'))
+
+            return jsonify({"df_sim_client": df_sim_client_j,
+                            "df_sim_client_norm": df_sim_client_norm_j})
+        except Exception as e:
+            return jsonify({'erreur': str(e)}), 500
+
+
+### Feature Local
 @ns.route('/shap/<int:id_client>')
 class ShapValuesClient(Resource):
     def get(self, id_client):
-        print("shap")
-        if id_client in data_test["SK_ID_CURR"].tolist():
-            data_client = data_test.loc[data_test["SK_ID_CURR"] == id_client]
-            data_client = data_client.drop(["Unnamed: 0", "SK_ID_CURR"], axis=1)
+        id_client = int(id_client)
+        if id_client in data_app["SK_ID_CURR"].tolist():
+            data_client = data_app.loc[data_app["SK_ID_CURR"] == id_client]
+            data_client = data_client.drop(["SK_ID_CURR","TARGET"], axis=1)
             data_client_array = data_client.values.reshape(1, -1)
 
             # Calculer les valeurs SHAP
@@ -203,18 +226,18 @@ class ShapValuesClient(Resource):
             return jsonify({"error": "Unknown ID"}), 404
 
 ### Feature Global
-@app.get("/api/global")
-def get_feature_importances():
-    feat_glob = json.loads(data_global.to_json())
-    return jsonify({'feat_imp_global': feat_glob})
+@ns.route('/global')
+class FeatureGlobal(Resource):
+    def get(self):
+        feat_glob = json.loads(data_global.to_json())
+        return jsonify({'feat_imp_global': feat_glob})
 
-### Feature Global
-@app.get("/api/desc/all")
-def get_desc():
-    data = json.loads(data_desc.to_json())
-    return jsonify({'desc': data})
-
-
+### Desc All
+@ns.route('/desc/all')
+class FeatureLocal(Resource):
+    def get(self):
+        data = json.loads(data_desc.to_json())
+        return jsonify({'desc': data})
 
 if __name__ == "__main__":
   app.run(debug=True)
