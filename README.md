@@ -14,7 +14,7 @@ Le projet suit une approche MLOps pour l'entraînement, le suivi, et le déploie
 ### Découpage des Dossiers
 
 - `/`: Code source pour l'entraînement du modèle, le déploiement de l'API, liste des packages.
-- `Streamlit/`: Code source pour le tableau de bord Streamlit.
+
 
 ## Installation
 
