@@ -2,7 +2,6 @@ import pandas as pd
 import pickle
 import shap
 import os
-import numpy as np
 import json
 
 from sklearn.preprocessing import MinMaxScaler
@@ -10,13 +9,7 @@ from sklearn.neighbors import NearestNeighbors
 from flask import Flask, request, jsonify, render_template
 from flask_restx import Api, Resource, Namespace, fields
 
-from shap import LinearExplainer, KernelExplainer, Explanation, TreeExplainer
-from shap.maskers import Independent
 shap.initjs()
-
-# Exemple
-# http://127.0.0.1:5000/api/predict/124782
-# http://127.0.0.1:5000/api/predict/58369
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API de Score de Crédit',
@@ -158,19 +151,16 @@ class InfoClient(Resource):
             return jsonify({"error": "Unknown ID"}), 404
 
 """Retourne les informations descriptives pour tous les clients."""
-@ns.route('/data/all')
-class AllClient(Resource):
-    def get(self):
-        try:
-            data_j = json.loads(df_minmax.to_json())
-
-            return jsonify({
-                'data': data_j,
-                'data_test': data_test_j,
-                'data_info': data_info_j,
-            }), 200
-        except Exception as e:
-            return jsonify({'erreur': str(e)}), 500
+@app.get('/api/data/all')
+def tous_data_clients():
+    try:
+        data_j = json.loads(df_minmax.to_json(orient='records'))
+        return jsonify({
+            'data': data_j,
+            'data_info': data_info_j,
+        }), 200
+    except Exception as e:
+        return jsonify({'erreur': str(e)}), 500
 
 ### Comparaison Knn
 @ns.route('/data/knn/<int:id_client>')
