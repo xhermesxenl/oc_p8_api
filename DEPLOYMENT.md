@@ -1,13 +1,13 @@
 # Déploiement de l'API sur Heroku via GitHub Actions
 
-Déployer l'API et le Dashbord sur Heroku en utilisant GitHub Actions pour une intégration et un déploiement continu.
+Déployer le Dashbord sur Heroku en utilisant GitHub Actions pour une intégration et un déploiement continu.
 
 ## Prérequis
 
 Disposer des éléments suivants :
 
 - Un compte Heroku.
-- Un projet GitHub contenant votre code API et Dashboard.
+- Un projet GitHub contenant votre code Dashboard.
 - Des droits administratifs sur le projet GitHub pour configurer les actions et les secrets.
 
 ## Configuration des Secrets GitHub

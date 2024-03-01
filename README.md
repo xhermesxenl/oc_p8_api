@@ -2,13 +2,13 @@
 
 ## Description
 
-Ce projet concerne le développement et le déploiement d'un Dashboard et d'une API de scoring de crédit pour "Prêt à dépenser", une entreprise financière spécialisée dans l'octroi de crédits à la consommation pour les personnes ayant peu ou pas d'historique de crédit.
-L'objectif principal du Dashboard  et de l'API est de calculer automatiquement la probabilité de remboursement d'un crédit par un client et de classer la demande comme accordée ou refusée en fonction d'un seuil optimisé du point de vue métier.
+Ce projet concerne le développement et le déploiement d'un Dashboard de scoring de crédit pour "Prêt à dépenser", une entreprise financière spécialisée dans l'octroi de crédits à la consommation pour les personnes ayant peu ou pas d'historique de crédit.
+L'objectif principal du Dashboard  est de calculer automatiquement la probabilité de remboursement d'un crédit par un client et de classer la demande comme accordée ou refusée en fonction d'un seuil optimisé du point de vue métier.
 Le Dashboard fournit une interface intuitive pour interagir avec l'API de scoring de crédit, permettant aux utilisateurs de tester et de visualiser les performances et les résultats du modèle de scoring.
 
 ## Architecture du Projet
 
-Le dashboard utilise le framework Streamlit. L'API repose sur un modèle de scoring développé à partir de données comportementales et financières variées. 
+Le dashboard utilise le framework Streamlit et appelle une API qui repose sur un modèle de scoring développé à partir de données comportementales et financières variées. 
 Le projet suit une approche MLOps pour l'entraînement, le suivi, et le déploiement du modèle, en utilisant des outils tels que MLFlow pour le tracking des expérimentations, un registre centralisé des modèles, et GitHub Actions pour l'intégration et le déploiement continu.
 
 ### Découpage des Dossiers
