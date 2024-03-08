@@ -1,5 +1,7 @@
 # Projet 8 : Réalisez un dashboard
 
+# API
+
 ## Description
 
 Ce projet concerne le développement et le déploiement d'un Dashboard de scoring de crédit pour "Prêt à dépenser", une entreprise financière spécialisée dans l'octroi de crédits à la consommation pour les personnes ayant peu ou pas d'historique de crédit.
@@ -11,7 +13,9 @@ Le Dashboard fournit une interface intuitive pour interagir avec l'API de scorin
 Le dashboard utilise le framework Streamlit et appelle une API qui repose sur un modèle de scoring développé à partir de données comportementales et financières variées. 
 Le projet suit une approche MLOps pour l'entraînement, le suivi, et le déploiement du modèle, en utilisant des outils tels que MLFlow pour le tracking des expérimentations, un registre centralisé des modèles, et GitHub Actions pour l'intégration et le déploiement continu.
 
-### Découpage des Dossiers
+Dépôt git du  projet Dashboard Interactif  : https://github.com/xhermesxenl/oc_p8_dashboard.git
+
+## Découpage des Dossiers
 
 - `/`: Code source pour l'entraînement du modèle, le déploiement de l'API, liste des packages.
 
