@@ -22,13 +22,11 @@ Dépôt git du  projet Dashboard Interactif  : https://github.com/xhermesxenl/oc
 
 ## Installation
 
-Pour configurer et exécuter l'API et le Dashboard localement, suivez ces étapes :
+Pour configurer et exécuter l'API localement, suivez ces étapes :
 
 1. Clonez le dépôt GitHub.
 2. Installez les dépendances en exécutant `pip install -r requirements.txt` dans le terminal.
 3. Lancez l'API avec `python api.py`.
-
-Pour configuer et exécuter le Dashboard localement, suivez les étapes dans le fichier README du repoertoire Streamlit
 
 ## Utilisation
 
@@ -36,11 +34,11 @@ L'API peut être testée localement via une requête HTTP POST avec un payload J
 
 ## Déploiement
 
-Les instructions pour le déploiement de l'API et du Dashboard sur une plateforme cloud (Heroku) sont fournies dans le fichier `DEPLOYMENT.md`.
+Les instructions pour le déploiement de l'API sur une plateforme cloud (Heroku) sont fournies dans le fichier `DEPLOYMENT.md`.
 
 ## Outils et Packages Utilisés
 
-Un fichier `requirements.txt` est inclus, listant toutes les bibliothèques Python nécessaires pour exécuter l'API et le Dashboard.
+Un fichier `requirements.txt` est inclus, listant toutes les bibliothèques Python nécessaires pour exécuter l'API.
 
 ## Licence
 [MIT](https://choosealicense.com/licenses/mit/)
