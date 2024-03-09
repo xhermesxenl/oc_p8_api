@@ -146,6 +146,8 @@ class InfoClient(Resource):
     def get(self, id_client):
         if id_client in data_info["SK_ID_CURR"].tolist():
             data_client = data_info.loc[data_info["SK_ID_CURR"] == id_client]
+            data_client['DAYS_BIRTH'] = abs(data_client['DAYS_BIRTH'])
+            data_client['DAYS_BIRTH'] = data_client['DAYS_BIRTH'].apply(lambda x: int(x))
             return jsonify(data_client.to_dict(orient="records"))
         else:
             return jsonify({"error": "Unknown ID"}), 404
